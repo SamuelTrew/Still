@@ -2,15 +2,16 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 #include <stdio.h>
+#include "main.hh"
 
 using namespace cv;
 using namespace std;
 
+// A program to take a video file and create an image from the average of all the RGB values from each point
 int main(int argc, char **argv) {
    const string filename = argv[1];
    assert(argc == 2 && "Arguments given were not in the form './still filename'");
    VideoCapture capture(filename);
-   cout << "Got the file" << endl;
    Mat frame;
    int count = 0;
 
@@ -33,7 +34,7 @@ int main(int argc, char **argv) {
       blue[i] = (unsigned int*) malloc(height * sizeof(unsigned int));
    }
 
-   // Setting the arrays to
+   // Setting the arrays to zero after malloc
    for (unsigned int i = 0; i < width; i++) {
       for (unsigned int j = 0; j < height; j++) {
          red[i][j] = 0;
@@ -42,9 +43,7 @@ int main(int argc, char **argv) {
       }
    }
 
-   cout << "FPS is: " << capture.get(CV_CAP_PROP_FPS) << endl;
    unsigned int frames = capture.get(CAP_PROP_FRAME_COUNT);
-   cout << "Total number of frames: " << frames << endl;
 
    while (!frame.empty()) {
       count++;
@@ -69,6 +68,24 @@ int main(int argc, char **argv) {
 
    cout << "Done gathering RGB data" << endl;
 
+   Mat result = set_average_colour(red, green, blue, width, height, count);
+
+   ostringstream name;
+   name << filename << "_image.jpeg";
+
+   imwrite(name.str(), result);
+   capture.release();
+
+   free_resources(red, green, blue, width);
+
+   cout << "Done!" << endl;
+
+   return 0;
+}
+
+
+// Takes the total RGB values gained from the video and averages them by the number of frames
+Mat set_average_colour(unsigned int** red, unsigned int** green, unsigned int** blue, unsigned int width, unsigned int height, int count) {
    Mat result(height, width, CV_8UC3, Scalar(0, 0, 0));
 
    for (unsigned int i = 0; i < width; i++) {
@@ -87,12 +104,11 @@ int main(int argc, char **argv) {
       }
    }
 
-   ostringstream name;
-   name << filename << "_image.jpeg";
+   return result;
+}
 
-   imwrite(name.str(), result);
-   capture.release();
-
+// Frees allocated arrays used for storing RGB values
+void free_resources(unsigned int** red, unsigned int** green, unsigned int** blue, unsigned int width) {
    for (unsigned int i = 0; i < width; i++) {
       free(red[i]);
       free(green[i]);
@@ -102,8 +118,4 @@ int main(int argc, char **argv) {
    free(red);
    free(green);
    free(blue);
-
-   cout << "Done!" << endl;
-
-   return 0;
 }
